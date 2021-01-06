@@ -11,11 +11,12 @@ const commands = {
 
     updateLastLogin: "update admin set token = ?,lastLoginIp = ?,lastLoginTime = ? where username = ?",
 
-
-
     updatePassword: "update admin set password = ? where token = ?",
     updateInfo: "update admin set name = ?, sex = ?, email = ?, introduction = ? where token = ?",
     updateAvatar: "update admin set avatar = ? where token = ?",
+
+
+    checkPassword: "select password from admin where token = ?"
 };
 
 // 导出的方法对象
@@ -160,7 +161,44 @@ const admin = {
             }
         });
     },
+    /**
+     * 修改密码
+     */
+    updatePassword: function(req, res, next) {
+        const param = req.body || req.query || req.params;
+        const token = req.get('access-token');
+        //取出连接
+        pool.getConnection(function(err, connection) {
+            if (err) {
+                console.log("数据库连接失败")
+            } else {
+                let password = ""
+                connection.query(commands.checkPassword, token, function(err, row) {
+                    if (err) {
+                        return
+                    } else {
+                        password = row[0].password
+                        if (password == param.passOld) {
+                            connection.query(commands.updatePassword, [param.pass, token], function(err, row) {
+                                if (err) {
+                                    res.send(err);
+                                } else {
+                                    if (row.affectedRows == 1) {
+                                        res.json(utils.builder({ status: 'done' }, "修改成功", 200));
+                                    } else
+                                        res.status(401).json(utils.builder({}, '修改失败', 401));
+                                }
 
+                            });
+                        } else
+                            res.json(utils.builder({ status: 'undone' }, '密码错误', 200));
+                    }
+                    // 释放连接 
+                    connection.release();
+                });
+            }
+        });
+    },
 
 }
 

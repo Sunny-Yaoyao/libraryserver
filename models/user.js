@@ -6,14 +6,14 @@ const salt = bcrypt.genSaltSync(10);
 
 //Sql语句
 const commands = {
-    insert: 'INSERT INTO user(user_id, user_username, user_pwd, user_name, user_age, user_sex, user_identityno, user_credit, user_depart)\
+    insert: 'INSERT INTO user(id, username, pwd, name, age, sex, identityno, credit, depart)\
             VALUES(0, ?, ?, ?, ?, ?, ?, ?, ?)',
     update: 'update user \
-            set user_username = ?, user_pwd = ?, user_name = ?, user_age = ?, user_sex = ? \
-            where user_id = ?',
-    delete: 'delete from user where user_id=?',
+            set username = ?, pwd = ?, name = ?, age = ?, sex = ? \
+            where id = ?',
+    delete: 'delete from user where id=?',
     queryAll: 'select * from user',
-    query: "select * from user where user_username=?"
+    query: "select * from user where username=?"
 };
 
 // 导出的方法对象
@@ -33,7 +33,7 @@ const user = {
                     if (err) {
                         res.send(err);
                     } else {
-                        if (row[0] && bcrypt.compareSync(param.password, row[0].user_pwd)) {
+                        if (row[0] && bcrypt.compareSync(param.password, row[0].pwd)) {
                             res.cookie("account", { data: row[0], last: new Date().getTime() }, { maxAge: 5 * 60 * 1000 });
                             res.json({ code: 200, msg: "LOGIN SUCESS" });
                             console.log(req.cookies["account"]);
@@ -136,6 +136,7 @@ const user = {
      */
     delete: function(req, res, next) {
         pool.getConnection(function(err, connection) {
+            console.log(req)
             var id = +req.query.id;
             if (err) {
                 console.log("数据库连接失败")

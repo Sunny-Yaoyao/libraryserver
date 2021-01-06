@@ -18,5 +18,8 @@ router.post('/uploadavatar', function(req, res, next) {
 router.post('/updateinfo', function(req, res, next) {
     admin.updateInfo(req, res, next)
 })
+router.post('/updatePassword', function(req, res, next) {
+    admin.updatePassword(req, res, next)
+})
 
 module.exports = router;

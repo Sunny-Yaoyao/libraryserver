@@ -4,12 +4,10 @@ const pool = mysql.createPool(config.mysql);
 
 //Sql语句
 const commands = {
-    insert: 'INSERT INTO books(book_no, book_title, book_isbn, book_author, book_pub, book_class) \
-            VALUES(0, ?, ?, ?, ?, ?)',
-    update: 'update books \
-            set book_no=?, book_title=?, book_isbn=?, book_author=?, book_pub=?, book_class=?\
-            where id=?',
-    delete: 'delete from books where id=?',
+    insert: 'INSERT INTO books(title, isbn, creator, pub, class, `call`, note, language) \
+            VALUES( ?, ?, ?, ?, ?, ?, ?, ?)',
+    update: 'update books set title=?, isbn=?, creator=?, pub=?, class=?, `call`=?, note=?, language=? where no=?',
+    delete: 'delete from books where no=?',
     queryAll: 'select * from books',
     query: 'select * from books '
 };
@@ -19,16 +17,16 @@ const book = {
     /**
      * 添加书籍信息
      */
-    add: function (req, res, next) {
-        let param = req.query || req.params;
+    add: function(req, res, next) {
+
+        let param = req.body || req.query || req.params;
         //取出连接
-        pool.getConnection(function (err, connection) {
+        pool.getConnection(function(err, connection) {
             if (err) {
                 console.log("数据库连接失败")
             } else {
-                connection.query(commands.insert,
-                    [param.name, param.isbn, param.author, param.pub, param.class],
-                    function (err, rows) {
+                connection.query(commands.insert, [param.title, param.isbn, JSON.stringify(param.creator), param.pub, param.class, param.note, param.call, param.language],
+                    function(err, rows) {
                         if (err) {
                             res.send(err);
                         } else {
@@ -43,18 +41,22 @@ const book = {
     /**
      * 通过param查询书籍信息
      */
-    query: function (req, res, next) {
-        let param = req.query || req.params;
+    query: function(req, res, next) {
+        let param = req.query || req.body || req.params;
         let mode = "title"
         for (let i in param) {
             mode = i
         }
-        let commandQuery = commands.query + `where book_${mode}=?`;
-        pool.getConnection(function (err, connection) {
+        let commandQuery = commands.query + `where ${mode}="${param[mode]}"`;
+        if (mode == "creator") {
+            commandQuery = commands.query + `WHERE creator->"$.main" like "%${param[mode]}%" or creator->"$.addition" like "%${param[mode]}%" `;
+        }
+        console.log(commandQuery);
+        pool.getConnection(function(err, connection) {
             if (err) {
                 console.log("数据库连接失败")
             } else {
-                connection.query(commandQuery, param[mode], function (err, rows) {
+                connection.query(commandQuery, function(err, rows) {
                     if (err)
                         res.send(err);
                     else
@@ -68,12 +70,12 @@ const book = {
     /**
      * 查询全部书籍信息
      */
-    queryAll: function (req, res, next) {
-        pool.getConnection(function (err, connection) {
+    queryAll: function(req, res, next) {
+        pool.getConnection(function(err, connection) {
             if (err) {
                 console.log("数据库连接失败")
             } else {
-                connection.query(commands.queryAll, function (err, rows) {
+                connection.query(commands.queryAll, function(err, rows) {
                     if (err)
                         res.send(err);
                     else
@@ -87,15 +89,14 @@ const book = {
     /**
      * 更改数据
      */
-    update: function (req, res, next) {
-        pool.getConnection(function (err, connection) {
-            let param = req.query || req.params;
+    update: function(req, res, next) {
+        pool.getConnection(function(err, connection) {
+            let param = req.body || req.query || req.params;
             if (err) {
                 console.log("数据库连接失败")
             } else {
-                connection.query(commands.update,
-                    [param.name, param.isbn, param.author, param.pub, param.class, +param.id],
-                    function (err, rows) {
+                connection.query(commands.update, [param.title, param.isbn, JSON.stringify(param.creator), param.pub, param.class, param.call, param.note, param.language, param.no],
+                    function(err, rows) {
                         if (err)
                             res.send(err);
                         else
@@ -109,13 +110,14 @@ const book = {
     /**
      * 删除数据
      */
-    delete: function (req, res, next) {
-        pool.getConnection(function (err, connection) {
-            let id = +req.query.id;
+    delete: function(req, res, next) {
+        pool.getConnection(function(err, connection) {
+            let param = req.body || req.query || req.params
+            console.log(param);
             if (err) {
                 console.log("数据库连接失败")
             } else {
-                connection.query(commands.delete, id, function (err, rows) {
+                connection.query(commands.delete, param.no, function(err, rows) {
                     if (err) {
                         res.send(err);
                     } else {
